@@ -69,7 +69,7 @@ class JWT
      * @uses jsonDecode
      * @uses urlsafeB64Decode
      */
-    public static function decode($jwt, $key, array $allowed_algs = array())
+    public static function decode($jwt, $key, array $allowed_algs = array('HS256'))
     {
         $timestamp = \is_null(static::$timestamp) ? \time() : static::$timestamp;
 
@@ -229,7 +229,7 @@ class JWT
      *
      * @throws DomainException Invalid Algorithm or OpenSSL failure
      */
-    private static function verify($msg, $signature, $key, $alg)
+    private static function verify($msg, $signature, $key, $alg = 'HS256')
     {
         if (empty(static::$supported_algs[$alg])) {
             throw new DomainException('Algorithm not supported');

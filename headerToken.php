@@ -3,19 +3,21 @@ require(__DIR__ . '/Base62.php');
 
 class headerToken
 {
-    public function verifyToken(string $public, string $providedToken, string $secretKey): bool
+    public function verifyToken(string $providedToken, string $secretKey)
     {
-        $verif_access_key = $public . ':';
+        debug("  token given => " . $providedToken);
+        debug("secret given  => " . $secretKey);
 
-        $res = Base62::encode(hash_hmac('md5', $verif_access_key, $secretKey));
-        if (strcasecmp($res, $providedToken) === 0) {
-            debug('accepted key ' . $res);
-            return true;
-        } else {
-            debug("hash computed => " . $res);
-            debug("hash given    => " . $providedToken);
+        try {
+            $payload = JWT::decode($providedToken, $secretKey);
+            debug('payload', $payload);
+        } catch (Exception $e) {
+            debug($e->getMessage());
+            return false;
         }
-        return false;
+        return $payload;
+
+
     }
 
     public function mkToken(string $public, string $secretKey): string

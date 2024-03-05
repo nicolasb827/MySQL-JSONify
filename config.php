@@ -8,13 +8,14 @@ ini_set('display_errors', 'On');
 error_reporting(-1);
 
 // GET details
-$obj = (include 'details.php');
+$my_config = (include 'details.php');
 
 // create all classes
-$connect = new Connect($obj["database"]);
+$connect = new Connect($my_config["database"]);
 try {
-    $data = new DataHandler($obj, $connect);
-    $sql = new SQLify($data);
+    $data = new DataHandler($my_config, $connect);
+    if ($data->statementPass)
+        $sql = new SQLify($data);
 
     $data->controlParams();
 } catch (Exception $e) {

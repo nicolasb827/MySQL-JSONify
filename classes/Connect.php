@@ -40,30 +40,47 @@ class Connect
     function startResponse($data, $sql)
     {
         if (!is_object($data)) return;
+        if (!$data->statementPass &&
+            (!array_key_exists('statement', $data->params) || $data->params["statement"] !== "login")) {
+            debug('[startResponse] 401', $data->params);
+            http_response_code(401);
+            return json_encode(array('info' => $data->loginInfo['login']['error']));
+        }
         // Based on method, do GET, POST, PUT, DELETE
         switch ($data->method) {
             case 'GET':
-                if (!$data->statementPass) {
-                    return json_encode(array('info' => $data->loginInfo['login']['error']));
-                }
+                debug('handing GET response', $data->loginInfo, $sql);
+                $this->connectInfo['login'] = $data->loginInfo['login'];
                 return $this->jsonResponse($sql->sql, $data->sqlParams, returnInfo($data, $sql, $this), $data);
             case 'POST':
-                if ($data->params["statement"] and $data->params["statement"] === "login"
+                debug('handing POST response', $data);
+                if (array_key_exists('statement', $data->params) and $data->params["statement"] === "login"
                     and getPOST('username') and getPOST('password')) {
+                    debug('[startResponse] starting login process');
                     $this->connectInfo['login'] = $data->loginJwt($this);
-                    return $this->jsonResponse($sql->sql['GET'], $data->sqlParams, returnInfo($data, $sql, $this), $data);
+                    // return $this->jsonResponse($sql->sql['GET'], $data->sqlParams, returnInfo($data, $sql, $this), $data);
+                    debug('login result: ', $this->connectInfo);
+                    if (array_key_exists('error', $this->connectInfo['login'])) {
+                        http_response_code(401);
+                    }
+                    return json_encode($this->connectInfo['login']);
                 } elseif (isset($data->params["token"])) {
                     if ($data->statementPass) {
                         $this->connectInfo['login'] = $data->loginInfo['login'];
                         $this->execute($sql->sql['POST']);
                     }
                     $this->connectInfo['login'] = $data->loginInfo['login'];
-                    return $this->jsonResponse($sql->sql['GET'], $data->sqlParams, returnInfo($data, $sql, $this), $data);
+                    if (array_key_exists('lastInsertId', $this->connectInfo) && !empty($this->connectInfo['lastInsertId']))
+                        return $this->jsonResponse("SELECT * FROM `" . $data->table . "` WHERE " . $data->idCol . " = " . $this->connectInfo['lastInsertId']);
+                    else {
+                        debug('last insert: ', $this->connectInfo);
+                        return $this->jsonResponse("SELECT NOW()");
+                    }
                 } elseif ($data->external_auth) {
                     debug('external auth, executing sql', $sql);
                     $this->execute($sql->sql['POST']);
-                    if (isset($this->connectInfo['lastInsertId']))
-                        return $this->jsonResponse("SELECT * FROM `$data->table` WHERE $data->idCol=" . $this->connectInfo['lastInsertId']);
+                    if (array_key_exists('lastInsertId', $this->connectInfo) && !empty($this->connectInfo['lastInsertId']))
+                        return $this->jsonResponse("SELECT * FROM `" . $data->table . "` WHERE " . $data->idCol . " = " . $this->connectInfo['lastInsertId']);
                     else {
                         debug('last insert: ', $this->connectInfo);
                         return $this->jsonResponse("SELECT NOW()");
@@ -71,16 +88,17 @@ class Connect
                 }
                 break;
             case 'PUT':
+                debug('handing PUT response');
                 $data->putParams = array_values(array_filter($data->putParams, function ($v) {
                     return !is_null($v);
                 }));
                 $this->execute($sql->sql, $data->putParams);
-                // error_log($this->connectInfo['executeStatus']);
                 return $this->jsonResponse("SELECT * FROM `$data->table` WHERE $data->idCol=" . end($data->putParams));
             case 'DELETE':
+                debug('handing DELETE response');
                 debug(print_r($data->sqlParams, true));
                 $this->execute($sql->sql, $data->sqlParams);
-                if ("Successful" !== $this->connectInfo['executeStatus']) {
+                if (0 !== $this->connectInfo['executeStatus']) {
                     http_response_code(599 /* custom */);
                     return json_encode(array('info' => $this->connectInfo));
                 } else
@@ -98,10 +116,12 @@ class Connect
             if ($stmt === false) {
                 debug('error on sql query', $stmt->errorInfo());
                 $this->connectInfo['executeStatus'] = $stmt->errorCode();
+                $this->connectInfo['executeMessage'] = $this->db->errorInfo()[0];
             }
-            if ($stmt->execute($sqlParams)) {
+            if ($stmt->execute($sqlParams) === true) {
                 debug($sql . ' <== SUCCESS');
-                $this->connectInfo['executeStatus'] = "Successful";
+                $this->connectInfo['executeMessage'] = "Successful";
+                $this->connectInfo['executeStatus'] = 0;
                 $this->connectInfo['lastInsertId'] = $this->db->lastInsertId();
             } else {
                 debug('error on sql query', $stmt->errorInfo());
@@ -109,10 +129,11 @@ class Connect
             }
         } catch (PDOException $e) {
             debug('Exception SQL', $e->getMessage());
-            $this->connectInfo['executeStatus'] = 'Error';
+            $this->connectInfo['executeStatus'] = $stmt->errorCode();
             $this->connectInfo['executeMessage'] = $e->getMessage();
         } catch (Exception $e) {
-            $this->connectInfo['executeStatus'] = $e->getMessage();
+            $this->connectInfo['executeStatus'] = $stmt->errorCode();
+            $this->connectInfo['executeMessage'] = $e->getMessage();
         }
     }
 
@@ -142,6 +163,8 @@ class Connect
             return json_encode(array('info' => $info, 'data' => $stmt->fetchAll(PDO::FETCH_ASSOC), JSON_PRETTY_PRINT)
             );
         } else {
+            debug('table level: ', @$data->tableProperty);
+            debug('login level: ', @$this->connectInfo['login']);
             $info['error'] = "Authority level not enough to get answer";
             return json_encode(array('info' => $info));
         }

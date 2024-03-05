@@ -316,6 +316,9 @@ function returnInfo($data, $sql, $connect): array
     if (isset($connect->connectInfo['executeStatus'])) {
         $info["executeStatus"] = $connect->connectInfo['executeStatus'];
     }
+    if (isset($connect->connectInfo['executeMessage'])) {
+        $info["executeMessage"] = $connect->connectInfo['executeMessage'];
+    }
     $info["id"] = $data->idCol;
     return $info;
 }

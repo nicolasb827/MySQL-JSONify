@@ -23,7 +23,7 @@ class SQLify
     public
     function getSQLPart($data, $part)
     {
-        if ($data->params[$part]) {
+        if (array_key_exists($part, $data->params) && !empty($data->params[$part])) {
             return $data->params[$part];
         }
         return "*";
@@ -59,8 +59,8 @@ class SQLify
         $set = arrayKeyRemove(array_keys($data->posts), $data->idCol);
         debug(print_r($data, true));
         $set = join(', ', array_map(function ($v) {
-                return "`$v` = ?";
-            }, $set));
+            return "`$v` = ?";
+        }, $set));
         debug($set);
         if (empty($filter))
             $set .= " WHERE $data->idCol = ?";
