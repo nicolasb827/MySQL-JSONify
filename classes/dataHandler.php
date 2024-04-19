@@ -81,11 +81,15 @@ class DataHandler
             // read and decode json data
             $json = file_get_contents('php://input');
             // Converts it into a PHP object
+            // convert 'null' string into null value
             $data = json_decode($json);
             // inject data into $_POST
-            foreach ($data as $k => $v) {
-                $_POST[$k] = $v;
-            }
+            if (!is_null($data))
+                foreach ($data as $k => $v) {
+                    if ($v === 'null')
+                        $v = null;
+                    $_POST[$k] = $v;
+                }
         }
         // controlPath then get table rows
         if (!empty($this->path)) {

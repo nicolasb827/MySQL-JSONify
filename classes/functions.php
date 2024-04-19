@@ -152,13 +152,13 @@ function filterClauseOrganizer($col, $comOperator, $search): string
         case "neq"://not equal (string or number matches exactly)
             return "`" . $col . "` != '" . $search . "' ";
         case "lt"://lower than (number is lower than value)
-            return "`" . $col . "` > '" . $search . "' ";
-        case "le"://lower or equal (number is lower than or equal to value)
-            return "`" . $col . "` => '" . $search . "' ";
-        case "ge"://greater or equal (number is higher than or equal to value)
-            return "`" . $col . "` =< '" . $search . "' ";
-        case "gt"://greater than (number is higher than value)
             return "`" . $col . "` < '" . $search . "' ";
+        case "le"://lower or equal (number is lower than or equal to value)
+            return "`" . $col . "` <= '" . $search . "' ";
+        case "ge"://greater or equal (number is higher than or equal to value)
+            return "`" . $col . "` >= '" . $search . "' ";
+        case "gt"://greater than (number is higher than value)
+            return "`" . $col . "` > '" . $search . "' ";
         case "bt"://between (number is between two comma separated values)
             return btComOperatorOrganizer($col, $search);
         case "nbt"://not between (number is between two comma separated values)
@@ -172,13 +172,14 @@ function filterClauseOrganizer($col, $comOperator, $search): string
         case "nis"://is not null (field contains "NULL" value)
             return "`" . $col . "` IS NOT NULL ";
         default: //cace cs(?):
+            debug('not found comOperator: ' . $comOperator . ' with value ' . $search);
             return "`" . $col . "` LIKE '%" . $search . "%' ";
     }
 }
 
 function filterOrganizer($filter, $tableRows): string
 {
-    $comOperatorsArray = array("lk", "nlk", "cs", "sw", "ew", "eq", "lt", "le", "ge", "gt", "bt", "in", "is", "nin" /* not in */);
+    $comOperatorsArray = array("lk", "nlk", "cs", "sw", "ew", "eq", "lt", "le", "ge", "gt", "bt", "in", "is", "nis" /* not is null */, "nin" /* not in */);
     $logOperatorsArray = array("AND", "OR", "||", "&&", "XOR");
     $slices = explode(";", $filter);
     debug("filters (slices)", $slices);
@@ -217,8 +218,9 @@ function filterOrganizer($filter, $tableRows): string
         reset($cols);
         foreach ($cols as $col) {
             $i--;
-            debug('$col', $col);
-            debug('$searchWords', $searchWords);
+            debug('1.$col', $col);
+            debug('2.$searchWords', $searchWords);
+            debug('3.$comOperator', $comOperator);
             if ($comOperator == 'in' || $comOperator == 'nin')
                 $organizeFilter .= filterClauseOrganizer($col, $comOperator, $searchWords);
             else
