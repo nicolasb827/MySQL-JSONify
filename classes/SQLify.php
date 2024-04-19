@@ -158,7 +158,6 @@ class SQLify
                 foreach ($data->tableProperty["ifUpdate"] as $key => $value) {
                     if ($value <= $data->loginInfo['login']->authorityLevel) {
                         $data->loginInfo['login']->ifUpdate = "Authority level not enough for direct update";
-
                     }
                 }
             }

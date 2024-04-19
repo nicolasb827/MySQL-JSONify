@@ -88,6 +88,7 @@ class DataHandler
                 foreach ($data as $k => $v) {
                     if ($v === 'null')
                         $v = null;
+                    debug('injecting: ' . $k .' = ' . (is_null($v) ? 'null': $v));
                     $_POST[$k] = $v;
                 }
         }

@@ -40,6 +40,8 @@ function getPOST($key, $default = null)
 
 function addStartEndSingleQuote($string): string
 {
+    if (is_null($string) || "NULL" === $string)
+        return $string;
     return "'" . $string .
         "'";
 }
@@ -79,7 +81,12 @@ function arrayBackTick($arr): array
 //To avoid injections that can be made for the query
 function sqlStringEscaper($value)
 {
-    return str_replace("'", "\'", str_replace('"', '\"', str_replace('\\\\', "\\", $value)));
+    debug('[sqlStringEscaper]: ' . is_null($value) ? 'null' : $value);
+    if (is_null($value)) {
+        return "NULL";
+    } else {
+        return str_replace("'", "\'", str_replace('"', '\"', str_replace('\\\\', "\\", $value)));
+    }
 }
 
 //To avoid injections that can be made for the query
