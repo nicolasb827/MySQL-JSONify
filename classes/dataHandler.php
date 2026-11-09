@@ -77,6 +77,15 @@ class DataHandler
         else
             $this->external_auth = true;
 
+        //
+        if (array_key_exists('blacklist', $my_config)) {
+            foreach ($my_config['blacklist'] as $t => $bl) {
+                foreach ($bl as $col => $value) {
+                    debug("deny returning col named %s with value %s from table %s", $col, $value, $t);
+                }
+            }
+        }
+
         if (strtolower(@$_SERVER['CONTENT_TYPE']) == 'application/json') {
             // read and decode json data
             $json = file_get_contents('php://input');
