@@ -95,7 +95,9 @@ class SQLify
         // If parameter exists, then make string else empty
         $id = "";
         if ($params["id"]) {
-            $id = "WHERE $data->idCol = " . firstNumberFinder($params["id"]);
+            $idPart = firstNumberFinder($params["id"]);
+            if ($idPart !== "")
+                $id = "WHERE $data->idCol = " . $idPart;
         }
         //Select if
         $select = $this->select;

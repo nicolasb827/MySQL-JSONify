@@ -86,7 +86,7 @@ class DataHandler
             }
         }
 
-        if (strtolower(@$_SERVER['CONTENT_TYPE']) == 'application/json') {
+        if (strtolower($_SERVER['CONTENT_TYPE'] ?? '') == 'application/json') {
             // read and decode json data
             $json = file_get_contents('php://input');
             // Converts it into a PHP object
@@ -185,7 +185,7 @@ class DataHandler
             // a hash is provided into header
             // public key is in X-B2N-EXPERTCODE-ID
             // private key (not the token) in X-B2N-EXPERTCODE
-            $ht = new HeaderToken();
+            $ht = new headerToken();
             $headers = getallheaders();
             $this->statementPass = false;
             $bearer = $this->getBearerToken();
@@ -299,7 +299,7 @@ class DataHandler
             $selectParams = explode(",", $this->params["select"]);
             foreach ($selectParams as $selectParam) {
                 if (!in_array($selectParam, $this->tableRows) && $selectParam) {
-                    $this->errorHandler($this);
+                    $this->errorHandler();
                 }
             }
         }

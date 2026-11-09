@@ -81,7 +81,7 @@ function arrayBackTick($arr): array
 //To avoid injections that can be made for the query
 function sqlStringEscaper($value)
 {
-    debug('[sqlStringEscaper]: ' . is_null($value) ? 'null' : $value);
+    debug('[sqlStringEscaper]:', $value);
     if (is_null($value)) {
         return "NULL";
     } else {
@@ -93,7 +93,7 @@ function sqlStringEscaper($value)
 function firstNumberFinder($value): string
 {
     preg_match_all('!\d+!', $value, $matches);
-    return $matches[0][0];
+    return $matches[0][0] ?? '';
 }
 
 // multible orderig organizer.
@@ -351,7 +351,7 @@ function debug(...$msg)
                 error_log($prefix . '(' . gettype($s) . ') ' . print_r($s, true));
                 break;
             case "boolean":
-                error_log($prefix . $s ? 'true' : 'false');
+                error_log($prefix . ($s ? 'true' : 'false'));
                 break;
             case "NULL":
                 error_log($prefix . "(null)");

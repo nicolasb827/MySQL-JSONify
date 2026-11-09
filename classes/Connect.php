@@ -51,7 +51,7 @@ class Connect
             case 'GET':
                 debug('handing GET response', $data->loginInfo, $sql);
                 $this->connectInfo['login'] = $data->loginInfo['login'];
-                return $this->jsonResponse($sql->sql, $data->sqlParams, returnInfo($data, $sql, $this), $data);
+                return $this->jsonResponse($sql->sql, null, returnInfo($data, $sql, $this), $data);
             case 'POST':
                 debug('handing POST response', $data);
                 if (array_key_exists('statement', $data->params) and $data->params["statement"] === "login"
@@ -92,6 +92,15 @@ class Connect
                 $data->putParams = array_values(array_filter($data->putParams, function ($v) {
                     return !is_null($v);
                 }));
+                $updatable = array_diff(array_keys($data->posts), array($data->idCol));
+                if (empty($updatable)) {
+                    http_response_code(400);
+                    return json_encode(array('info' => 'PUT: no field to update'));
+                }
+                if (empty($data->params['filter']) && !array_key_exists($data->idCol, $data->posts)) {
+                    http_response_code(400);
+                    return json_encode(array('info' => 'PUT: missing id column "' . $data->idCol . '"'));
+                }
                 $this->execute($sql->sql, $data->putParams);
                 return $this->jsonResponse("SELECT * FROM `$data->table` WHERE $data->idCol=" . end($data->putParams));
             case 'DELETE':
@@ -109,14 +118,16 @@ class Connect
     public
     function execute($sql, $sqlParams = null)
     {
+        $stmt = false;
         try {
             debug('[execute] ', $sql);
             debug('[execute] ', $sqlParams);
             $stmt = $this->db->prepare($sql);
             if ($stmt === false) {
-                debug('error on sql query', $stmt->errorInfo());
-                $this->connectInfo['executeStatus'] = $stmt->errorCode();
+                debug('error on sql query', $this->db->errorInfo());
+                $this->connectInfo['executeStatus'] = $this->db->errorCode();
                 $this->connectInfo['executeMessage'] = $this->db->errorInfo()[0];
+                return;
             }
             if ($stmt->execute($sqlParams) === true) {
                 debug($sql . ' <== SUCCESS');
@@ -129,10 +140,10 @@ class Connect
             }
         } catch (PDOException $e) {
             debug('Exception SQL', $e->getMessage());
-            $this->connectInfo['executeStatus'] = $stmt->errorCode();
+            $this->connectInfo['executeStatus'] = $stmt instanceof PDOStatement ? $stmt->errorCode() : $e->getCode();
             $this->connectInfo['executeMessage'] = $e->getMessage();
         } catch (Exception $e) {
-            $this->connectInfo['executeStatus'] = $stmt->errorCode();
+            $this->connectInfo['executeStatus'] = $stmt instanceof PDOStatement ? $stmt->errorCode() : $e->getCode();
             $this->connectInfo['executeMessage'] = $e->getMessage();
         }
     }
@@ -160,7 +171,9 @@ class Connect
                 return json_encode(array('info' => $e->getMessage(), 'stack' => $e->getTraceAsString(), 'request' => $sql));
             }
             //info added page number, id etc.
-            return json_encode(array('info' => $info, 'data' => $stmt->fetchAll(PDO::FETCH_ASSOC), JSON_PRETTY_PRINT)
+            return json_encode(
+                array('info' => $info, 'data' => $stmt->fetchAll(PDO::FETCH_ASSOC)),
+                JSON_PRETTY_PRINT
             );
         } else {
             debug('table level: ', @$data->tableProperty);
